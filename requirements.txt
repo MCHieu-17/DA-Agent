@@ -1,0 +1,10 @@
+langgraph
+langchain
+langchain-google-genai
+langchain-chroma    
+langchain-tavily
+
+pydantic
+pandas
+python-dotenv
+duckdb
