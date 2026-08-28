@@ -1,76 +1,75 @@
-from typing import Annotated, List, Optional, Literal, TypedDict
+from typing import Annotated, List, Optional, Literal, TypedDict, Dict
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
 
 
+# ========================= #
+#       SCHEMA FOR LLM      #
+# ========================= #
+# 1. Router
 class RouteDecision(BaseModel):
     intent: Literal["chat", "analysis", "clarify_needed"] = Field(
         description="Nhãn phân loại của câu hỏi"
     )
-# class DataAgentState(TypedDict):
-#     # --- Lịch sử chat ---
-#     messages: Annotated[List[BaseMessage], add_messages]
+# 2. For clarify question
+class ClarifyDecision(BaseModel):
+    clarifying_question: str = Field(
+        description="Câu hỏi ngắn gọn để hỏi lại user, làm rõ ý định phân tích dữ liệu."
+    )
+    reason: str = Field(
+        description="Lý do ngắn gọn vì sao câu hỏi gốc chưa đủ rõ để phân tích."
+    )
+# 3. For planner
+class AnalysisPlan(BaseModel):
+    steps: list[str] = Field(description="Danh sách các bước logic ngắn gọn để phân tích dữ liệu")
 
-#     # --- Router / intent ---
-#     user_question: str
-#     intent: Literal["chat", "analysis", "clarify_needed"]
+# 4. Schema for coder 
+class CoderOutput(BaseModel):
+    code: str = Field(description="Mã Python được tạo ra để thực thi. Không bao gồm markdown formatting (như ```python).")
 
-#     # --- Dataset & schema ---
-#     dataset_id: Optional[str]
-#     data_schema: Optional[dict]
+# ========================= #
+#       SCHEMA FOR GRAPH    #
+# ========================= #
+class DataAgentState(TypedDict):
+    # --- Lịch sử chat ---
+    messages: Annotated[List[BaseMessage], add_messages]
 
-#     # --- Planning ---
-#     plan: List[str]
-#     current_step_idx: int
-#     past_steps: List[dict]  # [{step, code, stdout, artifacts}]
-
-#     # --- Coder / Executor ---
-#     code: Optional[str]
-#     execution_status: Optional[Literal["success", "error"]]
-#     execution_output: Optional[str]
-#     execution_error: Optional[str]
-#     traceback: Optional[str]
-
-#     # --- Retry / Replan control ---
-#     retry_count: int
-#     max_retries: int
-#     replan_count: int
-#     max_replans: int
-
-#     # --- Human in the loop ---
-#     needs_human_review: bool
-#     human_approved: Optional[bool]
-
-#     # --- Validation & output ---
-#     is_sufficient: Optional[bool]
-#     artifacts: List[str]
-#     final_answer: Optional[str]
+    # --- Dataset & schema ---
+    file_paths: List[str]
+    schema_str: Optional[str]
 
 
-# def init_state(user_question: str, dataset_id: Optional[str] = None) -> DataAgentState:
-#     """Helper khởi tạo state mặc định cho một lượt chạy mới."""
-#     return DataAgentState(
-#         messages=[],
-#         user_question=user_question,
-#         intent="analysis",
-#         dataset_id=dataset_id,
-#         data_schema=None,
-#         plan=[],
-#         current_step_idx=0,
-#         past_steps=[],
-#         code=None,
-#         execution_status=None,
-#         execution_output=None,
-#         execution_error=None,
-#         traceback=None,
-#         retry_count=0,
-#         max_retries=3,
-#         replan_count=0,
-#         max_replans=2,
-#         needs_human_review=False,
-#         human_approved=None,
-#         is_sufficient=None,
-#         artifacts=[],
-#         final_answer=None,
-#     )
+
+
+    # --- Planning ---
+    plan: List[str]
+    current_step_idx: int
+    past_steps: List[dict]  # [{step, code, stdout, artifacts}]
+
+    # --- Coder / Executor ---
+    code: Optional[str]
+    execution_status: Optional[Literal["success", "error"]]
+    execution_output: Optional[str]
+    execution_error: Optional[str]
+    traceback: Optional[str]
+
+    # --- Debug ---
+    debug_feedback: Optional[str]
+
+
+    # --- Retry / Replan control ---
+    retry_count: int
+    max_retries: int
+    replan_count: int
+    max_replans: int
+
+    # # --- Human in the loop ---
+    # needs_human_review: bool
+    # human_approved: Optional[bool]
+
+    # # --- Validation & output ---
+    # is_sufficient: Optional[bool]
+    # artifacts: List[str]
+    # final_answer: Optional[str]
+
