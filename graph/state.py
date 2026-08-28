@@ -7,12 +7,12 @@ from pydantic import BaseModel, Field
 # ========================= #
 #       SCHEMA FOR LLM      #
 # ========================= #
-# 1. Router
+# 1. Schema for Router
 class RouteDecision(BaseModel):
     intent: Literal["chat", "analysis", "clarify_needed"] = Field(
         description="Nhãn phân loại của câu hỏi"
     )
-# 2. For clarify question
+# 2. Schema for clarify question
 class ClarifyDecision(BaseModel):
     clarifying_question: str = Field(
         description="Câu hỏi ngắn gọn để hỏi lại user, làm rõ ý định phân tích dữ liệu."
@@ -20,13 +20,19 @@ class ClarifyDecision(BaseModel):
     reason: str = Field(
         description="Lý do ngắn gọn vì sao câu hỏi gốc chưa đủ rõ để phân tích."
     )
-# 3. For planner
+# 3. Schema for planner
 class AnalysisPlan(BaseModel):
     steps: list[str] = Field(description="Danh sách các bước logic ngắn gọn để phân tích dữ liệu")
 
 # 4. Schema for coder 
 class CoderOutput(BaseModel):
     code: str = Field(description="Mã Python được tạo ra để thực thi. Không bao gồm markdown formatting (như ```python).")
+
+# 5. Schema for validator
+class ValidatorOutput(BaseModel):
+    is_valid: bool = Field(description="True nếu kết quả đã trả lời đủ và đúng trọng tâm câu hỏi gốc. False nếu chưa.")
+    feedback: str = Field(description="Lý do chưa đạt và gợi ý hướng xử lý tiếp (chỉ ghi khi False).")
+
 
 # ========================= #
 #       SCHEMA FOR GRAPH    #
@@ -38,9 +44,6 @@ class DataAgentState(TypedDict):
     # --- Dataset & schema ---
     file_paths: List[str]
     schema_str: Optional[str]
-
-
-
 
     # --- Planning ---
     plan: List[str]

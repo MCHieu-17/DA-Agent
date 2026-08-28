@@ -3,9 +3,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from graph.state import RouteDecision
 
 llm =  ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
-structured_llm = llm.with_structured_output(RouteDecision)
+structured_router_llm = llm.with_structured_output(RouteDecision)
 
-router_system_prompt = """Bạn là hệ thống định tuyến (Router) cho một AI phân tích dữ liệu.
+system_prompt = """Bạn là hệ thống định tuyến (Router) cho một AI phân tích dữ liệu.
 Nhiệm vụ của bạn là đọc câu hỏi và phân loại vào đúng 1 trong 3 nhãn sau:
 
 1. 'chat': Giao tiếp thông thường, hoặc hỏi đáp kiến thức chung không yêu cầu truy vấn/phân tích dữ liệu thực tế.
@@ -19,8 +19,8 @@ Hãy đối chiếu câu hỏi với lược đồ trên để xem yêu cầu ph
 """
 
 prompt = ChatPromptTemplate.from_messages([
-    ("system", router_system_prompt),
+    ("system", system_prompt),
     ("human", "Câu hỏi: \n\n{user_question}")
 ])
 
-router_chain = prompt | structured_llm
+router_chain = prompt | structured_router_llm
