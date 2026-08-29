@@ -1,3 +1,5 @@
+
+from graph.state import DataAgentState
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -11,3 +13,20 @@ prompt = ChatPromptTemplate.from_messages([
 ])
 
 debug_chain = prompt | llm
+def debug_node(state: DataAgentState):    
+    human_content = f"""
+    - Đoạn code bị lỗi:
+    {state.get('code')}
+    
+    - Lỗi (Exception): {state.get('execution_error')}
+    - Traceback: 
+    {state.get('traceback')}
+    """
+    
+    response = debug_chain.invoke(
+        {"human_message": human_content}
+    )
+    
+    return {
+        "debug_feedback": response.content,
+    }

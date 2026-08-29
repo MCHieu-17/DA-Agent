@@ -3,6 +3,8 @@ langchain
 langchain-google-genai
 langchain-chroma    
 langchain-tavily
+langgraph-cli
+"langgraph-cli[inmem]"
 
 pydantic
 pandas

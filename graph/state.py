@@ -1,4 +1,4 @@
-from typing import Annotated, List, Optional, Literal, TypedDict, Dict
+from typing import Annotated, List, Optional, Literal, TypedDict, Dict, Required
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
@@ -33,7 +33,11 @@ class ValidatorOutput(BaseModel):
     is_valid: bool = Field(description="True nếu kết quả đã trả lời đủ và đúng trọng tâm câu hỏi gốc. False nếu chưa.")
     feedback: str = Field(description="Lý do chưa đạt và gợi ý hướng xử lý tiếp (chỉ ghi khi False).")
 
-
+# 6. Schema for synthetic
+class SyntheticOutput(BaseModel):
+    final_answer: str = Field(
+        description="Câu trả lời cuối cùng, toàn diện, dùng Markdown. Nếu có ảnh/biểu đồ trong artifacts, HÃY NHÚNG vào bằng cú pháp ![Mô tả](đường_dẫn_file)."
+    )
 # ========================= #
 #       SCHEMA FOR GRAPH    #
 # ========================= #
@@ -44,6 +48,7 @@ class DataAgentState(TypedDict):
     # --- Dataset & schema ---
     file_paths: List[str]
     schema_str: Optional[str]
+    schema_file_paths: Optional[List[str]]  # bộ file đã dùng để tạo schema_str
 
     # --- Planning ---
     plan: List[str]
@@ -56,6 +61,7 @@ class DataAgentState(TypedDict):
     execution_output: Optional[str]
     execution_error: Optional[str]
     traceback: Optional[str]
+    artifacts_dir: Required[str] # Chỗ lưu ảnh các biểu đồ
 
     # --- Debug ---
     debug_feedback: Optional[str]
@@ -71,8 +77,8 @@ class DataAgentState(TypedDict):
     # needs_human_review: bool
     # human_approved: Optional[bool]
 
-    # # --- Validation & output ---
-    # is_sufficient: Optional[bool]
-    # artifacts: List[str]
-    # final_answer: Optional[str]
-
+    # --- Validation & output ---
+    is_sufficient: Optional[bool]
+    artifacts: List[str]
+    final_answer: Optional[str]
+    validation_feedback: Optional[str]

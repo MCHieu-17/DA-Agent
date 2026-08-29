@@ -1,11 +1,11 @@
+from langchain_core.messages import AIMessage
+
+from graph.state import DataAgentState, ClarifyDecision
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
-from graph.state import ClarifyDecision
 
 llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 structured_clarify_llm = llm.with_structured_output(ClarifyDecision)
-
-
 
 clarify_system_prompt = """Bạn là trợ lý AI chuyên làm rõ yêu cầu phân tích dữ liệu.
 Hệ thống đã xác định câu hỏi dưới đây của người dùng CÒN THIẾU THÔNG TIN để có thể truy vấn/phân tích dữ liệu.
@@ -27,3 +27,14 @@ Câu hỏi của người dùng:
 ])
 
 clarify_chain = prompt | structured_clarify_llm
+
+def clarify_node(state: DataAgentState):
+    decision: ClarifyDecision = clarify_chain.invoke(
+        {
+            "user_question": state["messages"][-1].content,
+            "data_schema": state["schema_str"]
+        }
+    )
+    return {
+        "messages": [AIMessage(content=decision.clarifying_question)],
+    }
