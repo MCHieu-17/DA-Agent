@@ -1,12 +1,17 @@
 langgraph
 langchain
 langchain-google-genai
+langchain-ollama
+langchain-deepseek
 langchain-chroma    
 langchain-tavily
 langgraph-cli
 "langgraph-cli[inmem]"
 
 pydantic
+numpy
 pandas
 python-dotenv
 duckdb
+matplotlib
+seaborn

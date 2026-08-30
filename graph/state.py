@@ -46,8 +46,8 @@ class DataAgentState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
 
     # --- Dataset & schema ---
-    file_paths: List[str]
-    schema_str: Optional[str]
+    file_paths: List[str] # Đường dẫn các file csv
+    schema_str: Optional[str] # Schema của các file csv
     schema_file_paths: Optional[List[str]]  # bộ file đã dùng để tạo schema_str
 
     # --- Planning ---

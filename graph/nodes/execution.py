@@ -3,6 +3,8 @@ import io
 import traceback
 from contextlib import redirect_stdout
 from graph.state import DataAgentState
+import matplotlib
+matplotlib.use("Agg")
 
 def execution_node(state: DataAgentState):
     code = state.get("code", "")

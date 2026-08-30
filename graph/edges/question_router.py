@@ -1,9 +1,8 @@
 from graph.state import DataAgentState, RouteDecision
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+from graph.llms import llm
 from graph.utils import format_history
 
-llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 structured_router_llm = llm.with_structured_output(RouteDecision)
 
 system_prompt = """Bạn là hệ thống định tuyến (Router) cho một AI phân tích dữ liệu.
