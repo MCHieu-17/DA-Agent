@@ -1,7 +1,9 @@
-from typing import Annotated, List, Optional, Literal, TypedDict, Dict, Required
+from typing import Annotated, List, Optional, Literal, TypedDict, Required
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
+
+from configuration import PLAN_MAX_STEPS
 
 
 # ========================= #
@@ -22,9 +24,16 @@ class ClarifyDecision(BaseModel):
     )
 # 3. Schema for planner
 class AnalysisPlan(BaseModel):
-    steps: list[str] = Field(description="Danh sách các bước logic ngắn gọn để phân tích dữ liệu")
+    steps: list[str] = Field(
+        min_length=1,
+        max_length=PLAN_MAX_STEPS,
+        description=(
+            "Danh sách bước phân tích. Mặc định dùng đúng 1 bước thực thi hoàn chỉnh; "
+            f"không bao giờ vượt quá {PLAN_MAX_STEPS} bước."
+        ),
+    )
 
-# 4. Schema for coder 
+# 4. Schema for coder
 class CoderOutput(BaseModel):
     code: str = Field(description="Mã Python được tạo ra để thực thi. Không bao gồm markdown formatting (như ```python).")
 
@@ -38,17 +47,23 @@ class SyntheticOutput(BaseModel):
     final_answer: str = Field(
         description="Câu trả lời cuối cùng, toàn diện, dùng Markdown. Nếu có ảnh/biểu đồ trong artifacts, HÃY NHÚNG vào bằng cú pháp ![Mô tả](đường_dẫn_file)."
     )
-# ========================= #
-#       SCHEMA FOR GRAPH    #
-# ========================= #
-class DataAgentState(TypedDict):
+# ========================== #
+#       SCHEMA FOR GRAPH     #
+# ========================== #
+class DataAgentState(TypedDict, total=False):
     # --- Lịch sử chat ---
-    messages: Annotated[List[BaseMessage], add_messages]
+    messages: Required[Annotated[List[BaseMessage], add_messages]]
 
     # --- Dataset & schema ---
     file_paths: List[str] # Đường dẫn các file csv
+    # Production worker keeps schema paths private and exposes only these
+    # fixed container paths to generated code.
+    execution_file_paths: List[str]
     schema_str: Optional[str] # Schema của các file csv
     schema_file_paths: Optional[List[str]]  # bộ file đã dùng để tạo schema_str
+    schema_file_fingerprints: List[str]
+    schema_valid: bool
+    schema_errors: List[str]
 
     # --- Planning ---
     plan: List[str]
@@ -61,7 +76,11 @@ class DataAgentState(TypedDict):
     execution_output: Optional[str]
     execution_error: Optional[str]
     traceback: Optional[str]
-    artifacts_dir: Required[str] # Chỗ lưu ảnh các biểu đồ
+    artifacts_dir: str # Thư mục gốc lưu artifacts
+    execution_artifacts_dir: str
+    artifact_run_id: str
+    service_run_id: str
+    execution_timeout_seconds: int
 
     # --- Debug ---
     debug_feedback: Optional[str]
@@ -72,13 +91,14 @@ class DataAgentState(TypedDict):
     max_retries: int
     replan_count: int
     max_replans: int
+    replan_reason: Optional[Literal["execution", "validation"]]
 
-    # # --- Human in the loop ---
-    # needs_human_review: bool
-    # human_approved: Optional[bool]
 
     # --- Validation & output ---
     is_sufficient: Optional[bool]
     artifacts: List[str]
     final_answer: Optional[str]
     validation_feedback: Optional[str]
+    workflow_status: Literal["running", "success", "needs_input", "failed"]
+    failure_reason: Optional[str]
+    node_error: Optional[str]

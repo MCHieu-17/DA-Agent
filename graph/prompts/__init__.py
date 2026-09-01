@@ -9,6 +9,7 @@ from graph.prompts.planner_prompt import (
     initial_planner_prompt,
     replan_prompt,
 )
+from graph.prompts.router_prompt import router_prompt
 from graph.prompts.synthetic_prompt import synthetic_prompt
 from graph.prompts.validation_prompt import validation_prompt
 
@@ -21,6 +22,7 @@ __all__ = [
     "initial_planner_prompt",
     "normal_prompt",
     "replan_prompt",
+    "router_prompt",
     "synthetic_prompt",
     "validation_prompt",
 ]

@@ -1,17 +1,6 @@
-langgraph
-langchain
-langchain-google-genai
-langchain-ollama
-langchain-deepseek
-langchain-chroma    
-langchain-tavily
-langgraph-cli
-"langgraph-cli[inmem]"
+-r requirements-app.txt
 
-pydantic
-numpy
-pandas
-python-dotenv
-duckdb
-matplotlib
-seaborn
+# Local Studio and test tooling; production images install requirements-app.txt.
+langgraph-cli[inmem]==0.4.31
+pytest==8.3.4
+pytest-cov==6.0.0

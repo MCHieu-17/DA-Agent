@@ -1,9 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 
 
-SYSTEM_NORMAL = """
-Bạn là chuyên gia Data Engineer. Viết mã Python.
-
+SYSTEM_HEADLESS = """
 MÔI TRƯỜNG HEADLESS (không có GUI).
 Nếu vẽ biểu đồ:
 - TUYỆT ĐỐI KHÔNG dùng plt.show() hay fig.show().
@@ -14,8 +12,15 @@ Nếu vẽ biểu đồ:
 - Sau đó print ra đường dẫn file đã lưu.
 """
 
+SYSTEM_NORMAL = (
+    "Bạn là chuyên gia Data Engineer. Viết mã Python.\n\n" + SYSTEM_HEADLESS
+)
+
 
 HUMAN_NORMAL = """
+- Các file CSV được phép sử dụng (dùng đúng đường dẫn tuyệt đối này):
+{data_files}
+
 - Dữ liệu schema:
 {schema_str}
 
@@ -26,29 +31,24 @@ HUMAN_NORMAL = """
 {current_step}
 
 Hãy viết mã Python.
-Chỉ dùng các thư viện phổ biến cho phân tích dữ liệu
-(pandas, numpy, matplotlib, plotly...).
+Chỉ được import các module trong allowlist: {allowed_imports}.
 
+Mỗi bước chạy trong một process độc lập: không dùng biến từ bước trước,
+hãy đọc lại CSV khi cần. Luôn print kết quả dữ liệu cần dùng để trả lời user.
 Không tự ý tạo lại thư mục '{artifacts_dir}'.
 """
 
 
-SYSTEM_ERROR = """
-Bạn là chuyên gia Data Engineer.
-Nhiệm vụ của bạn là SỬA LỖI mã Python.
-
-MÔI TRƯỜNG HEADLESS (không có GUI).
-Nếu vẽ biểu đồ:
-- TUYỆT ĐỐI KHÔNG dùng plt.show() hay fig.show().
-- Hãy lưu file vào thư mục '{artifacts_dir}'.
-- Ví dụ:
-  plt.savefig('{artifacts_dir}/chart.png')
-  fig.write_html('{artifacts_dir}/chart.html')
-- Sau đó print ra đường dẫn file đã lưu.
-"""
+SYSTEM_ERROR = (
+    "Bạn là chuyên gia Data Engineer. Nhiệm vụ của bạn là SỬA LỖI mã Python.\n\n"
+    + SYSTEM_HEADLESS
+)
 
 
 HUMAN_ERROR = """
+- Các file CSV được phép sử dụng (dùng đúng đường dẫn tuyệt đối này):
+{data_files}
+
 - Dữ liệu schema:
 {schema_str}
 
@@ -64,8 +64,13 @@ HUMAN_ERROR = """
 - Traceback / Error:
 {traceback}
 
+- Phân tích và hướng sửa từ debugger:
+{debug_feedback}
+
 Hãy viết lại mã Python để khắc phục lỗi.
-Lưu kết quả in ra vào stdout.
+Chỉ được import các module trong allowlist: {allowed_imports}.
+Mỗi lần chạy là một process độc lập; hãy đọc lại CSV khi cần.
+Luôn print kết quả dữ liệu cần dùng để trả lời user ra stdout.
 """
 
 
