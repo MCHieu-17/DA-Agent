@@ -1,4 +1,31 @@
--r requirements-app.txt
+langgraph==1.2.11
+langchain-core==1.6.0
+langchain-google-genai==4.3.6
+langchain-ollama==1.1.0
+langchain-deepseek==1.1.0
+
+pydantic==2.13.4
+pydantic-settings==2.12.0
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+sqlalchemy==2.0.36
+psycopg[binary]==3.2.3
+alembic==1.14.0
+python-multipart==0.0.20
+PyJWT==2.10.1
+httpx==0.28.1
+prometheus-client==0.21.1
+bleach==6.2.0
+boto3==1.35.76
+docker==7.1.0
+
+numpy==2.5.2
+pandas==2.2.3
+python-dotenv==1.2.3
+duckdb==1.2.2
+matplotlib==3.11.1
+seaborn==0.13.2
+plotly==7.0.0
 
 # Local Studio and test tooling; production images install requirements-app.txt.
 langgraph-cli[inmem]==0.4.31
