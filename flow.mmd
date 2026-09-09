@@ -1,0 +1,53 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	intake(intake)
+	data_profiling(data_profiling)
+	chat(chat)
+	clarify(clarify)
+	planner(planner)
+	coder(coder)
+	execute(execute)
+	debug(debug)
+	synthetic(synthetic)
+	verification(verification)
+	finalize(finalize)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> intake;
+	coder -.-> execute;
+	coder -.-> finalize;
+	data_profiling -.-> clarify;
+	data_profiling -.-> finalize;
+	data_profiling -.-> planner;
+	debug -.-> execute;
+	debug -.-> finalize;
+	execute -.-> coder;
+	execute -.-> debug;
+	execute -.-> finalize;
+	execute -.-> planner;
+	execute -.-> synthetic;
+	intake -. &nbsp;done&nbsp; .-> __end__;
+	intake -.-> chat;
+	intake -.-> clarify;
+	intake -. &nbsp;analysis&nbsp; .-> data_profiling;
+	intake -.-> finalize;
+	planner -.-> clarify;
+	planner -.-> coder;
+	planner -.-> finalize;
+	synthetic -.-> finalize;
+	synthetic -.-> verification;
+	verification -.-> clarify;
+	verification -.-> finalize;
+	verification -.-> planner;
+	verification -.-> synthetic;
+	chat --> __end__;
+	clarify --> __end__;
+	finalize --> __end__;
+	planner -.-> planner;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc

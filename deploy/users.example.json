@@ -1,0 +1,5 @@
+{
+  "analyst": {
+    "token_sha256": "REPLACE_WITH_SHA256_OF_A_RANDOM_32_BYTE_OR_LONGER_BEARER_TOKEN"
+  }
+}

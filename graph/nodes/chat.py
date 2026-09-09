@@ -6,12 +6,12 @@ from graph.state import DataAgentState
 from graph.utils import bounded_messages
 
 
-chat_chain = chat_prompt | get_node_llm("chat")
+
 
 
 def chat_node(state: DataAgentState):
     try:
-        response = chat_chain.invoke(
+        response = (chat_prompt | get_node_llm("chat")).invoke(
             {"messages": bounded_messages(state["messages"])}
         )
         content = response.content
@@ -20,6 +20,6 @@ def chat_node(state: DataAgentState):
         content = "Mình chưa thể trả lời lúc này. Bạn vui lòng thử lại sau."
         status = "failed"
     return {
-        "messages": [AIMessage(content=content)],
+        "messages": [AIMessage(content=content)], "final_answer": content,
         "workflow_status": status,
     }

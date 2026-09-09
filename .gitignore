@@ -33,6 +33,8 @@ dist/
 # Runtime-generated files
 .langgraph_api/
 artifacts/
+deploy/users.json
+deploy/sources.json
 *.log
 
 # Jupyter

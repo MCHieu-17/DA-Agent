@@ -1,11 +1,9 @@
-import os
 from pathlib import Path
 
 from configuration import (
     ARTIFACTS_DIR,
     HISTORY_MAX_CHARS,
     HISTORY_MAX_MESSAGES,
-    PROMPT_EVIDENCE_MAX_CHARS,
     USER_INPUT_MAX_CHARS,
     state_override,
 )
@@ -69,34 +67,85 @@ def latest_human_message(messages) -> str:
     return truncate_text(content, USER_INPUT_MAX_CHARS)
 
 
-def format_step_evidence(past_steps, max_chars=None) -> str:
-    """Serialize only the evidence needed by later LLM nodes.
+def current_step(state):
+    return state["plan"]["steps"][state["current_step_index"]]
 
-    Generated code and success stderr remain inspectable in state, but are not
-    repeatedly sent to planner/coder/synthetic/validator.
-    """
-    max_chars = PROMPT_EVIDENCE_MAX_CHARS if max_chars is None else max_chars
-    chunks = []
-    for index, step in enumerate(past_steps, start=1):
-        chunks.append(
-            "\n".join(
-                [
-                    f"Bước {index}: {step.get('step', '')}",
-                    f"Kết quả: {step.get('stdout', '')}",
-                    f"Artifacts: {step.get('artifacts', [])}",
-                ]
-            )
-        )
-    evidence = "\n\n".join(chunks) if chunks else "(chưa có bước thành công)"
-    return truncate_text(evidence, max_chars)
+
+def step_inputs(state):
+    available = {
+        p["dataset_id"]: {"type": "postgres" if p.get("kind") == "postgres" else "dataset",
+                          "path": p["path"], "read_options": p["read_options"],
+                          **({"broker_source": p["broker_source"]} if p.get("kind") == "postgres" else {})}
+        for p in state["profiles"]
+    }
+    available.update({r["ref"]: r for r in state.get("step_results", [])})
+    keys = {"type", "path", "value", "read_options", "broker_source"}
+    return {i["source"]: {**{k: v for k, v in available[i["source"]].items() if k in keys}, "columns": i["columns"]}
+            for i in current_step(state)["inputs"]}
+
+
+def analysis_context(state, node="verification"):
+    import json
+    from configuration import PROMPT_EVIDENCE_MAX_CHARS
+    relevant = None
+    if node in {"coder", "debugger"}:
+        relevant = {item["source"]: item["columns"] for item in current_step(state)["inputs"]}
+    evidence = []
+    for result in state.get("step_results", []):
+        if relevant is not None and result["ref"] not in relevant:
+            continue
+        keys = {"ref", "type", "columns", "dtypes", "row_count", "value", "preview", "preview_truncated", "checks"}
+        if node == "verification":
+            keys.add("code")
+        evidence.append({key: value for key, value in result.items() if key in keys})
+    # Remove whole preview rows; never truncate serialized JSON or executed code.
+    import configuration as cfg
+    limit = cfg.VERIFICATION_EVIDENCE_MAX_CHARS if node == "verification" else PROMPT_EVIDENCE_MAX_CHARS
+    while len(json.dumps(evidence, ensure_ascii=False)) > limit:
+        candidate = max((r for r in evidence if r.get("preview")), key=lambda r: len(str(r["preview"])), default=None)
+        if candidate is None:
+            raise ValueError("Required evidence exceeds context budget; reduce plan size.")
+        candidate["preview"] = candidate["preview"][:len(candidate["preview"]) // 2]
+        candidate["preview_truncated"] = True
+    profiles = []
+    if node not in {"synthetic"}:
+        for profile in state.get("profiles", []):
+            if relevant is not None and profile["dataset_id"] not in relevant:
+                continue
+            columns = []
+            for col in profile["columns"]:
+                wanted = relevant.get(profile["dataset_id"], []) if relevant is not None else []
+                if wanted and col["name"] not in wanted:
+                    continue
+                keys = {"name", "suggested_type", "null_count", "mixed_numeric", "leading_zero_count", "datetime", "raw_type"}
+                columns.append({k: v for k, v in col.items() if k in keys})
+            profiles.append({"dataset_id": profile["dataset_id"], "row_count": profile["row_count"],
+                             "kind": profile.get("kind", "file"), "columns": columns})
+    return {
+        "current_question": latest_human_message(state["messages"]) + (
+            "\nResolved request (verify against original and history): " + state["analysis_request"]
+            if state.get("analysis_request") and state["analysis_request"] != latest_human_message(state["messages"]) else ""),
+        "history": format_history(state["messages"], exclude_last=True),
+        "plan": json.dumps(state.get("plan", {}), ensure_ascii=False),
+        "profile_summary": json.dumps({"datasets": profiles}, ensure_ascii=False),
+        "evidence": json.dumps(evidence, ensure_ascii=False),
+        "feedback": state.get("replan_reason") or (state.get("verification") or {}).get("feedback", ""),
+    }
 
 
 def get_project_root() -> Path:
     return PROJECT_ROOT
 
 
-def get_run_artifacts_dir(state) -> str:
-    """Return an isolated artifact directory for the current user turn."""
-    base_dir = state_override(state, "artifacts_dir", ARTIFACTS_DIR)
-    run_id = state.get("artifact_run_id")
-    return os.path.join(base_dir, run_id) if run_id else base_dir
+def resolve_project_path(raw_path: str) -> Path:
+    """Đường dẫn tương đối luôn tính từ gốc dự án, kể cả khi đổi cwd."""
+    path = Path(raw_path).expanduser()
+    return (path if path.is_absolute() else PROJECT_ROOT / path).resolve(strict=False)
+
+
+def get_attempt_artifacts_dir(state) -> Path:
+    base = state_override(state, "artifacts_dir", ARTIFACTS_DIR)
+    return (resolve_project_path(base) / state["artifact_run_id"]
+            / f"plan_{state.get('plan_version', 0)}"
+            / f"step_{current_step(state)['step']}"
+            / f"attempt_{state.get('debug_count', 0)}")

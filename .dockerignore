@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+artifacts
+datasets
+__pycache__
+**/__pycache__
+.pytest_cache
+.langgraph_api
+.venv
+deploy/users.json
+deploy/sources.json

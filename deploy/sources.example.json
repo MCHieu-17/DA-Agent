@@ -1,0 +1,16 @@
+{
+  "sales": {
+    "kind": "file",
+    "path": "/srv/da-agent/datasets/sales.csv",
+    "users": ["analyst"],
+    "columns": ["Sales", "City", "Date"]
+  },
+  "orders": {
+    "kind": "postgres",
+    "dsn_env": "DA_REPORTING_DSN",
+    "schema": "reporting",
+    "table": "orders",
+    "users": ["analyst"],
+    "columns": ["order_date", "city", "sales"]
+  }
+}

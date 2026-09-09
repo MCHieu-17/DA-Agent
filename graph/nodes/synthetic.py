@@ -1,39 +1,21 @@
+import json
 from graph.llms import get_node_llm
 from graph.prompts import synthetic_prompt
-from graph.state import DataAgentState, SyntheticOutput
-from graph.utils import format_step_evidence, latest_human_message
+from graph.state import SyntheticOutput
+from graph.recovery import model_failure
+from graph.utils import analysis_context
 
+def public_artifacts(state):
+    return sorted({p for r in state.get("step_results", []) for p in r.get("artifacts", [])})
 
-structured_synthetic_llm = get_node_llm("synthetic").with_structured_output(
-    SyntheticOutput
-)
-synthetic_chain = synthetic_prompt | structured_synthetic_llm
-
-
-def synthetic_node(state: DataAgentState):
-    # Lấy câu hỏi gốc của user (tìm message Human đầu tiên hoặc gần nhất)
-    user_question = latest_human_message(state["messages"])
-
-    plan = state.get("plan", [])
-    past_steps = state.get("past_steps", [])
-    artifacts = state.get("artifacts", [])
-
-    steps_text = format_step_evidence(past_steps)
-
+def synthetic_node(state):
+    revisions = state["answer_revision_count"] + int(
+        (state.get("verification") or {}).get("decision") == "revise_answer")
     try:
-        result: SyntheticOutput = synthetic_chain.invoke({
-            "user_question": user_question,
-            "plan": plan,
-            "past_steps": steps_text,
-            "artifacts": artifacts
+        result = (synthetic_prompt | get_node_llm("synthetic").with_structured_output(SyntheticOutput)).invoke({
+            **analysis_context(state, "synthetic"), "draft_answer": state.get("draft_answer") or "",
+            "artifacts": json.dumps(public_artifacts(state), ensure_ascii=False),
         })
+        return {"draft_answer": result.final_answer, "answer_revision_count": revisions}
     except Exception as exc:
-        return {
-            "node_error": f"SyntheticError: {type(exc).__name__}: {exc}",
-            "workflow_status": "failed",
-        }
-
-    return {
-        "final_answer": result.final_answer,
-        "node_error": None,
-    }
+        return model_failure("Synthetic", exc)

@@ -1,0 +1,48 @@
+name: Test and sandbox release gate
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  unit-and-postgres:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: disposable-ci-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+        env:
+          DA_EXECUTOR_BACKEND: local
+          DA_TEST_POSTGRES_DSN: postgresql://postgres:disposable-ci-password@localhost:5432/postgres
+  gvisor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Install verified runsc release in disposable runner
+        run: |
+          curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.bz2
+          curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.bz2.sha512
+          sha512sum -c gvisor.tar.bz2.sha512
+          sudo tar -xjf gvisor.tar.bz2 -C /usr/local/bin
+          sudo /usr/local/bin/runsc install
+          sudo systemctl restart docker
+          runsc --version
+      - name: Build and pin sandbox image
+        run: |
+          docker build -f deploy/Dockerfile.sandbox -t da-sandbox:ci .
+          echo "DA_SANDBOX_IMAGE=$(docker image inspect da-sandbox:ci --format '{{.Id}}')" >> "$GITHUB_ENV"
+      - name: Run real sandbox probes
+        run: sudo --preserve-env=DA_SANDBOX_IMAGE,PATH env DA_TEST_GVISOR=1 DA_EXECUTOR_BACKEND=local "$pythonLocation/bin/python" -m pytest tests/test_gvisor_integration.py -q

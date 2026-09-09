@@ -10,15 +10,15 @@ from importlib import import_module
 
 _NODE_EXPORTS = {
     "clarify_node": ("graph.nodes.clarifier", "clarify_node"),
-    "coder_node": ("graph.nodes.coder", "coder_node"),
     "debug_node": ("graph.nodes.debugger", "debug_node"),
     "execution_node": ("graph.nodes.execution", "execution_node"),
     "planner_node": ("graph.nodes.planner", "planner_node"),
-    "extract_schema_node": ("graph.nodes.schema_extractor", "extract_schema_node"),
+    "data_profiling_node": ("graph.nodes.data_profiling", "data_profiling_node"),
+    "coder_node": ("graph.nodes.coder", "coder_node"),
+    "verification_node": ("graph.nodes.verification", "verification_node"),
+    "finalize_node": ("graph.nodes.finalize", "finalize_node"),
     "synthetic_node": ("graph.nodes.synthetic", "synthetic_node"),
-    "validate_node": ("graph.nodes.validation", "validate_node"),
     "chat_node": ("graph.nodes.chat", "chat_node"),
-    "failure_node": ("graph.nodes.failure", "failure_node"),
 }
 
 __all__ = list(_NODE_EXPORTS)

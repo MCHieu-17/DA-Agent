@@ -1,0 +1,23 @@
+[Unit]
+Description=DA Agent analysis worker %i
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/da-agent
+EnvironmentFile=/etc/da-agent/worker.env
+ExecStart=/srv/da-agent/.venv/bin/python -m service.worker
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=20
+# Trusted worker needs mount/loop and Docker access. Never expose it as an API.
+User=root
+UMask=0022
+MemoryMax=8G
+CPUQuota=200%
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

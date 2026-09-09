@@ -1,0 +1,19 @@
+[Unit]
+Description=DA Agent internal HTTP API
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/da-agent
+EnvironmentFile=/etc/da-agent/api.env
+ExecStart=/srv/da-agent/.venv/bin/uvicorn service.api:app --host 127.0.0.1 --port 8080
+User=da-api
+Group=da-api
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

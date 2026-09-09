@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from functools import lru_cache
 
 from configuration import (
     LLM_COMMON_OPTIONS,
@@ -28,12 +29,12 @@ def create_llm(
     if normalized_provider == "gemini":
         runtime_options = {
             "timeout": LLM_REQUEST_TIMEOUT_SECONDS,
-            "max_retries": LLM_MAX_RETRIES,
+            "max_retries": 0,
         }
     elif normalized_provider == "deepseek":
         runtime_options = {
             "request_timeout": LLM_REQUEST_TIMEOUT_SECONDS,
-            "max_retries": LLM_MAX_RETRIES,
+            "max_retries": 0,
         }
     elif normalized_provider == "self_host":
         runtime_options = {
@@ -71,11 +72,14 @@ def create_llm(
     )
 
 
-llm = create_llm()
+@lru_cache(maxsize=1)
+def _shared_llm():
+    return create_llm()
 
 
-def get_node_llm(node_name: str):
-    """Bind a small, node-specific output budget while reusing one client."""
+@lru_cache(maxsize=32)
+def node_model(node_name: str):
+    """Constructor budgets survive with_structured_output (Runnable.bind does not)."""
     try:
         max_output_tokens = LLM_NODE_MAX_OUTPUT_TOKENS[node_name]
     except KeyError as exc:
@@ -87,7 +91,18 @@ def get_node_llm(node_name: str):
         option_name = "max_tokens"
     else:
         option_name = "num_predict"
-    return llm.bind(**{option_name: max_output_tokens})
+    return create_llm(options={option_name: max_output_tokens})
+
+
+def get_node_llm(node_name: str):
+    from graph.llms.measured import MeasuredModel
+    return MeasuredModel(node_name, node_model(node_name))
 
 
 __all__ = ["create_llm", "get_node_llm", "llm"]
+
+
+def __getattr__(name):
+    if name == "llm":
+        return _shared_llm()
+    raise AttributeError(name)

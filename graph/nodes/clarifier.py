@@ -6,30 +6,29 @@ from graph.state import ClarifyDecision, DataAgentState
 from graph.utils import latest_human_message
 
 
-structured_clarify_llm = get_node_llm("clarify").with_structured_output(
-    ClarifyDecision
-)
-clarify_chain = clarifier_prompt | structured_clarify_llm
-
 def clarify_node(state: DataAgentState):
-    schema_errors = state.get("schema_errors", [])
-    if schema_errors:
-        details = "\n".join(f"- {error}" for error in schema_errors)
+    if state.get("clarification_question"):
+        content = state["clarification_question"]
+        return {"messages": [AIMessage(content=content)], "final_answer": content,
+                "workflow_status": "needs_input", "artifacts": []}
+    profile_errors = state.get("profile_errors", [])
+    if profile_errors:
+        details = "\n".join(f"- {error}" for error in profile_errors)
         content = (
             "Mình chưa thể phân tích vì dữ liệu CSV chưa hợp lệ:\n"
             f"{details}\n\n"
             "Bạn hãy cung cấp lại đường dẫn tới file CSV hợp lệ rồi gửi lại yêu cầu."
         )
         return {
-            "messages": [AIMessage(content=content)],
+            "messages": [AIMessage(content=content)], "final_answer": content,
             "workflow_status": "needs_input",
         }
 
     try:
-        decision: ClarifyDecision = clarify_chain.invoke(
+        decision: ClarifyDecision = (clarifier_prompt | get_node_llm("clarify").with_structured_output(ClarifyDecision)).invoke(
             {
                 "user_question": latest_human_message(state["messages"]),
-                "data_schema": state["schema_str"]
+                "data_schema": state.get("profile_summary", "{}")
             }
         )
         content = f"{decision.reason}\n\n{decision.clarifying_question}"
@@ -40,6 +39,6 @@ def clarify_node(state: DataAgentState):
         )
 
     return {
-        "messages": [AIMessage(content=content)],
+        "messages": [AIMessage(content=content)], "final_answer": content,
         "workflow_status": "needs_input",
     }

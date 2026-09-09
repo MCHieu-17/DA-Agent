@@ -1,0 +1,60 @@
+[
+  {
+    "id": "total_sales",
+    "question": "Tính tổng Sales trên toàn bộ dữ liệu.",
+    "file": "datasets/SuperMarket Analysis.csv",
+    "oracle": {
+      "type": "scalar",
+      "value": 322966.749
+    }
+  },
+  {
+    "id": "monthly_sales",
+    "question": "Tính tổng Sales theo từng tháng năm 2019. Dùng Date theo MM/DD/YYYY, trả bảng theo thứ tự tháng. Use columns month (YYYY-MM) and revenue in the output table.",
+    "file": "datasets/SuperMarket Analysis.csv",
+    "oracle": {
+      "type": "table",
+      "columns": [
+        "month",
+        "revenue"
+      ],
+      "ordered": true,
+      "rows": [
+        {
+          "month": "2019-01",
+          "revenue": 116291.868
+        },
+        {
+          "month": "2019-02",
+          "revenue": 97219.374
+        },
+        {
+          "month": "2019-03",
+          "revenue": 109455.507
+        }
+      ]
+    }
+  },
+  {
+    "id": "airbnb_missing",
+    "question": "Có bao nhiêu giá trị thiếu trong từng cột last_review và reviews_per_month? Không điền dữ liệu thiếu. Return a table with columns column_name and missing_count, one row per requested column.",
+    "file": "datasets/AB_NYC_2019.csv",
+    "oracle": {
+      "type": "table",
+      "columns": [
+        "column_name",
+        "missing_count"
+      ],
+      "rows": [
+        {
+          "column_name": "last_review",
+          "missing_count": 10052
+        },
+        {
+          "column_name": "reviews_per_month",
+          "missing_count": 10052
+        }
+      ]
+    }
+  }
+]
