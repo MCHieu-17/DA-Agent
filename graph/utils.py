@@ -5,7 +5,6 @@ from configuration import (
     HISTORY_MAX_CHARS,
     HISTORY_MAX_MESSAGES,
     USER_INPUT_MAX_CHARS,
-    state_override,
 )
 
 
@@ -73,13 +72,15 @@ def current_step(state):
 
 def step_inputs(state):
     available = {
-        p["dataset_id"]: {"type": "postgres" if p.get("kind") == "postgres" else "dataset",
-                          "path": p["path"], "read_options": p["read_options"],
-                          **({"broker_source": p["broker_source"]} if p.get("kind") == "postgres" else {})}
+        p["dataset_id"]: {
+            "type": "dataset",
+            "path": p["path"],
+            "read_options": p["read_options"],
+        }
         for p in state["profiles"]
     }
     available.update({r["ref"]: r for r in state.get("step_results", [])})
-    keys = {"type", "path", "value", "read_options", "broker_source"}
+    keys = {"type", "path", "value", "read_options"}
     return {i["source"]: {**{k: v for k, v in available[i["source"]].items() if k in keys}, "columns": i["columns"]}
             for i in current_step(state)["inputs"]}
 
@@ -120,7 +121,7 @@ def analysis_context(state, node="verification"):
                 keys = {"name", "suggested_type", "null_count", "mixed_numeric", "leading_zero_count", "datetime", "raw_type"}
                 columns.append({k: v for k, v in col.items() if k in keys})
             profiles.append({"dataset_id": profile["dataset_id"], "row_count": profile["row_count"],
-                             "kind": profile.get("kind", "file"), "columns": columns})
+                             "columns": columns})
     return {
         "current_question": latest_human_message(state["messages"]) + (
             "\nResolved request (verify against original and history): " + state["analysis_request"]
@@ -144,8 +145,7 @@ def resolve_project_path(raw_path: str) -> Path:
 
 
 def get_attempt_artifacts_dir(state) -> Path:
-    base = state_override(state, "artifacts_dir", ARTIFACTS_DIR)
-    return (resolve_project_path(base) / state["artifact_run_id"]
+    return (resolve_project_path(ARTIFACTS_DIR) / state["artifact_run_id"]
             / f"plan_{state.get('plan_version', 0)}"
             / f"step_{current_step(state)['step']}"
             / f"attempt_{state.get('debug_count', 0)}")

@@ -28,7 +28,6 @@ class ExpectedOutput(BaseModel):
     unique_columns: list[str] = Field(default_factory=list, description="Composite unique key of this TABLE output, using only names in columns. Empty when not guaranteed or for scalar/chart.")
 
 class PlanStep(BaseModel):
-    engine: Literal["python", "duckdb_sql", "postgres_sql"] = "python"
     step: int = Field(ge=1)
     goal: str = Field(min_length=1)
     inputs: list[StepInput] = Field(min_length=1)
@@ -78,18 +77,12 @@ class VerificationResult(BaseModel):
         return self
 
 class DataAgentState(TypedDict, total=False):
-    schema_version: int
-    source_refs: list[str]
-    principal: str
+    messages: Required[Annotated[list[BaseMessage], add_messages]]
+    file_paths: list[str]
     route: str
     analysis_request: str
     analysis_memory: str
     analysis_columns: dict[str, list[str]]
-    metrics: list[dict]
-    token_charge: int
-    deadline: float
-    messages: Required[Annotated[list[BaseMessage], add_messages]]
-    file_paths: list[str]
     profiles: list[dict]
     profile_summary: str
     profile_cache_key: str
@@ -114,9 +107,7 @@ class DataAgentState(TypedDict, total=False):
     draft_answer: str | None
     clarification_question: str | None
     artifact_run_id: str
-    artifacts_dir: str
     artifacts: list[str]
-    execution_timeout_seconds: int
     final_answer: str | None
     workflow_status: Literal["running", "success", "needs_input", "failed"]
     node_error: str | None

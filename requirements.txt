@@ -1,28 +1,12 @@
-# Graph và các provider LLM hiện có.
 langgraph==1.2.11
 langchain-core==1.6.0
 langchain-google-genai==4.3.6
-langchain-ollama==1.1.0
 langchain-deepseek==1.1.0
+langgraph-cli[inmem]==0.4.31
 pydantic==2.13.4
 python-dotenv==1.2.3
-
-# Thư viện cho schema và code phân tích chạy local.
 numpy==2.5.2
 pandas==2.2.3
 pyarrow==25.0.1
-duckdb==1.5.5
 matplotlib==3.11.1
-seaborn==0.13.2
-plotly==7.0.0
-
-# LangGraph Studio và kiểm thử.
-langgraph-cli[inmem]==0.4.31
 pytest==8.3.4
-pytest-cov==6.0.0
-sqlglot==30.18.0
-psycopg[binary]==3.2.3
-psutil==7.2.2
-fastapi==0.115.5
-uvicorn==0.32.1
-httpx==0.28.1

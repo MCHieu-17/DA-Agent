@@ -18,19 +18,12 @@ def cache_key(paths):
         try:
             stat = path.stat()
             identity = [str(path), stat.st_size, stat.st_mtime_ns]
-            if cfg.PROFILE_CACHE_STRICT_HASH:
-                with path.open("rb") as handle:
-                    identity.append(hashlib.file_digest(handle, "sha256").hexdigest())
             parts.append(identity)
         except OSError:
             parts.append([str(path), "missing"])
     return hashlib.sha256(json.dumps([parts, settings], sort_keys=True).encode()).hexdigest()
 
 def _chunks(path, usecols=None):
-    if str(path).lower().endswith(".parquet"):
-        import pyarrow.parquet as pq
-        return (batch.to_pandas().astype("string") for batch in pq.ParquetFile(path).iter_batches(
-            batch_size=cfg.PROFILE_CHUNK_SIZE, columns=usecols))
     return pd.read_csv(path, dtype="string", chunksize=cfg.PROFILE_CHUNK_SIZE,
                        usecols=usecols, **cfg.CSV_READ_OPTIONS)
 
@@ -56,14 +49,10 @@ def _accumulate(stats, values):
 
 def profile_file(raw_path, dataset_id):
     path = resolve_project_path(raw_path)
-    if path.suffix.lower() not in cfg.CSV_ALLOWED_EXTENSIONS | {".parquet"}:
+    if path.suffix.lower() not in cfg.CSV_ALLOWED_EXTENSIONS:
         raise ValueError(f"Unsupported CSV extension: {path}")
-    if path.suffix.lower() == ".parquet":
-        import pyarrow.parquet as pq
-        header = pq.read_schema(path).names
-    else:
-        with path.open(encoding=cfg.CSV_READ_OPTIONS["encoding"], newline="") as handle:
-            header = next(csv.reader(handle, delimiter=cfg.CSV_READ_OPTIONS["sep"]), [])
+    with path.open(encoding=cfg.CSV_READ_OPTIONS["encoding"], newline="") as handle:
+        header = next(csv.reader(handle, delimiter=cfg.CSV_READ_OPTIONS["sep"]), [])
     if not header or any(not name.strip() for name in header) or len(set(header)) != len(header):
         raise ValueError(f"Empty or duplicate CSV header: {path}")
 
@@ -135,18 +124,8 @@ def profile_file(raw_path, dataset_id):
             "quartiles_numeric": quantiles,
             "iqr_outlier_count_numeric": outliers,
         }
-    native_dates = set()
-    if path.suffix.lower() == ".parquet":
-        import pyarrow as pa
-        for field in pq.read_schema(path):
-            columns[field.name]["raw_type"] = str(field.type)
-            if pa.types.is_timestamp(field.type) or pa.types.is_date(field.type):
-                native_dates.add(field.name)
-                columns[field.name]["suggested_type"] = "datetime"
-                columns[field.name]["datetime"] = {"scope": "schema", "format": None,
-                                                    "ambiguous": False, "native": True}
     # Date candidates come from the reservoir; candidate formats are then checked over ALL rows.
-    candidates = [name for name in header if name not in native_dates and len(sample[name].dropna()) and
+    candidates = [name for name in header if len(sample[name].dropna()) and
                   sample[name].dropna().str.match(r"^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}(?:[ T].*)?$").mean() >= .8]
     date_stats = {name: {fmt: {"count": 0, "min": None, "max": None, "digest": hashlib.sha256()}
                          for fmt in cfg.PROFILE_DATE_FORMATS} for name in candidates}
@@ -215,33 +194,19 @@ def summarize_profiles(profiles):
     return encode()
 
 def data_profiling_node(state):
-    from graph.sources import prepare_sources
-    try:
-        sources = prepare_sources(state)
-    except Exception as exc:
-        sources = []
-        source_error = type(exc).__name__ if cfg.ENVIRONMENT == "production" else f"{type(exc).__name__}: {exc}"
-    else:
-        source_error = None
-    paths = [s["path"] for s in sources if s.get("kind", "file") == "file"]
+    paths = list(state.get("file_paths", []))
     key = cache_key(paths)
-    if not source_error and len(paths) == len(sources) and state.get("profile_cache_key") == key and "profiles" in state:
+    if state.get("profile_cache_key") == key and "profiles" in state:
         profiles, errors = state["profiles"], list(state.get("profile_errors", []))
     else:
         profiles, errors = [], []
-        if source_error:
-            errors.append(source_error)
-        if not sources:
+        if not paths:
             errors.append("Chưa có file CSV. Hãy cung cấp đường dẫn dữ liệu.")
-        for i, source in enumerate(sources, 1):
+        for i, path in enumerate(paths, 1):
             try:
-                if source.get("kind", "file") == "postgres":
-                    from graph.postgres import profile
-                    profiles.append(profile(source, f"dataset_{i}"))
-                else:
-                    profiles.append(cached_profile(source["path"], f"dataset_{i}"))
+                profiles.append(profile_file(path, f"dataset_{i}"))
             except Exception as exc:
-                errors.append(f"dataset_{i}: {type(exc).__name__}" + (f": {exc}" if cfg.ENVIRONMENT != "production" else ""))
+                errors.append(f"dataset_{i}: {type(exc).__name__}: {exc}")
     try:
         summary = summarize_profiles(profiles)
     except ValueError as exc:
@@ -259,26 +224,7 @@ def data_profiling_node(state):
         "traceback": None, "debug_count": 0, "replan_count": 0,
         "answer_revision_count": 0, "replan_reason": None, "verification": None,
         "draft_answer": None, "clarification_question": None, "artifacts": [],
-        "artifact_run_id": state.get("artifact_run_id", uuid4().hex) if state.get("schema_version") == 2 else uuid4().hex,
+        "artifact_run_id": state.get("artifact_run_id", uuid4().hex),
         "final_answer": None, "workflow_status": "running",
         "node_error": None, "termination_reason": None,
-        "execution_timeout_seconds": max(cfg.EXECUTION_MIN_TIMEOUT_SECONDS, min(
-            int(cfg.state_override(state, "execution_timeout_seconds", cfg.EXECUTION_TIMEOUT_SECONDS)),
-            cfg.EXECUTION_MAX_TIMEOUT_SECONDS)),
     }
-
-def cached_profile(path, dataset_id):
-    """Immutable snapshot + profiling configuration = persistent reusable profile."""
-    key = cache_key([path])
-    root = resolve_project_path(cfg.SNAPSHOT_DIR) / "profiles"
-    root.mkdir(parents=True, exist_ok=True)
-    target = root / (key + ".json")
-    if target.exists():
-        value = json.loads(target.read_text(encoding="utf-8"))
-        return {**value, "dataset_id": dataset_id}
-    value = profile_file(path, dataset_id)
-    temporary = root / (uuid4().hex + ".tmp")
-    temporary.write_text(json.dumps(value, allow_nan=False), encoding="utf-8")
-    import os
-    os.replace(temporary, target)
-    return value

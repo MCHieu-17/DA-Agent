@@ -10,13 +10,6 @@ def check_plan(plan, profiles):
     available = {p["dataset_id"]: [c["name"] for c in p["columns"]] for p in profiles}
     kinds = {key: "table" for key in available}
     for index, step in enumerate(plan["steps"], 1):
-        postgres = {p["dataset_id"] for p in profiles if p.get("kind") == "postgres"}
-        used = {i["source"] for i in step["inputs"]}
-        if step.get("engine", "python") == "postgres_sql":
-            if not used <= postgres or step["expected_output"]["type"] == "chart":
-                raise ValueError("PostgreSQL steps require database inputs and scalar/table output.")
-        elif used & postgres:
-            raise ValueError("Extract PostgreSQL inputs using a postgres_sql step first.")
         if step["step"] != index:
             raise ValueError("Step numbers must be consecutive from 1.")
         sources = [i["source"] for i in step["inputs"]]
@@ -58,7 +51,7 @@ def planner_node(state):
                       draft_answer=None)
     effective = {**state, **update}
     try:
-        result = (planner_prompt | get_node_llm("planner").with_structured_output(AnalysisPlan)).invoke(analysis_context(state, "planner"))
+        result = (planner_prompt | get_node_llm("planner").with_structured_output(AnalysisPlan)).invoke(analysis_context(effective, "planner"))
         plan = result.model_dump()
         if result.clarification_question:
             return {**update, "clarification_question": result.clarification_question}
@@ -67,7 +60,7 @@ def planner_node(state):
     except Exception as exc:
         return {**update, **model_failure("Planner", exc)}
     try:
-        check_plan(plan, state["profiles"])
+        check_plan(plan, effective["profiles"])
     except ValueError as exc:
         return {**update, **request_replan(effective, f"Invalid plan: {exc}")}
     return {

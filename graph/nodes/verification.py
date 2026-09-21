@@ -17,8 +17,10 @@ def verification_node(state):
         for step, result in zip(steps, results):
             if result["plan_version"] != state["plan_version"] or result["step"] != step["step"]:
                 raise ValueError("Stale step evidence.")
-            from graph.integrity import verify_files
-            verify_files(result)
+            actual = read_result(result["directory"], step["expected_output"])
+            for key in ("type", "path", "value", "columns", "row_count"):
+                if key in result and actual.get(key) != result[key]:
+                    raise ValueError(f"Step evidence changed: {result['ref']} {key}.")
     except Exception as exc:
         return request_replan(state, f"Evidence contract failed: {exc}")
     try:

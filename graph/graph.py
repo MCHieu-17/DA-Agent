@@ -12,9 +12,7 @@ from graph.nodes.verification import verification_node
 from graph.nodes.finalize import finalize_node
 from graph.nodes.chat import chat_node
 from graph.nodes.clarifier import clarify_node
-from graph.edges.question_router import question_router
 from graph.nodes.intake import intake_node, after_intake
-from graph.telemetry import observed
 
 def after_profile(state):
     if state.get("workflow_status") == "failed":
@@ -58,10 +56,10 @@ def build_graph():
         "debug": debug_node, "synthetic": synthetic_node, "verification": verification_node,
         "finalize": finalize_node,
     }.items():
-        graph.add_node(name, observed(name, node))
+        graph.add_node(name, node)
     graph.add_edge(START, "intake")
     graph.add_conditional_edges("intake", after_intake,
-        {"analysis": "data_profiling", "chat": "chat", "clarify": "clarify", "done": END, "finalize": "finalize"})
+        {"analysis": "data_profiling", "chat": "chat", "clarify": "clarify", "finalize": "finalize"})
     graph.add_conditional_edges("data_profiling", after_profile,
                                 {"planner": "planner", "clarify": "clarify", "finalize": "finalize"})
     for name, router, destinations in [
