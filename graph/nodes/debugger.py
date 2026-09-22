@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import json
 from graph.llms import get_node_llm
 from graph.prompts import debugger_prompt
@@ -16,3 +17,12 @@ def debug_node(state):
         return {"code": result.code, "debug_count": count}
     except Exception as exc:
         return {"debug_count": count, **model_failure("Debug", exc)}
+=======
+from graph.state import DataAgentState
+
+
+def debug_node(state: DataAgentState):
+    """Keep only compact error context; the coder performs the repair in one call."""
+    trace = (state.get("traceback") or "")[-4000:]
+    return {"debug_feedback": f"{state.get('execution_error', 'ExecutionError')}: {trace}"}
+>>>>>>> restore-work

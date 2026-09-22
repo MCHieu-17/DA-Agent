@@ -3,6 +3,7 @@
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
+<<<<<<< HEAD
 from configuration import (
     LLM_MAX_RETRIES,
     LLM_MODEL,
@@ -24,6 +25,20 @@ def create_llm(
     options = options or {}
     if provider == "gemini":
         from langchain_google_genai import ChatGoogleGenerativeAI
+=======
+from graph.settings import settings
+from graph.llms.deepseek import create_deepseek_llm
+from graph.llms.gemini import create_gemini_llm
+from graph.llms.self_host import create_self_host_llm
+
+
+def create_llm(
+    provider: str = settings.llm_provider,
+    model: str = settings.llm_model,
+) -> BaseChatModel:
+    """Create the chat model selected through environment settings."""
+    normalized_provider = provider.strip().lower().replace("-", "_")
+>>>>>>> restore-work
 
         runtime_options = {
             "timeout": LLM_REQUEST_TIMEOUT_SECONDS,

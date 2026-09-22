@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from pathlib import Path
 
 from configuration import (
@@ -43,16 +44,28 @@ def bounded_messages(messages, max_msgs=None, max_chars=None):
             update={"content": truncate_text(selected[-1].content, latest_limit)}
         )
     return selected
+=======
+from graph.settings import settings
+
+
+def latest_user_question(messages) -> str:
+    return next((str(message.content) for message in reversed(messages) if message.type == "human"), "")
+>>>>>>> restore-work
 
 
 def format_history(messages, max_msgs=None, exclude_last=False) -> str:
     """Nén lịch sử hội thoại thành chuỗi text để nhét vào prompt."""
     msgs = messages[:-1] if exclude_last else messages
+<<<<<<< HEAD
     msgs = bounded_messages(msgs, max_msgs=max_msgs)
+=======
+    max_msgs = max_msgs or settings.chat_history_max_messages
+>>>>>>> restore-work
     lines = [
         f"{'User' if m.type == 'human' else 'AI'}: {m.content}"
         for m in msgs
     ]
+<<<<<<< HEAD
     history = "\n".join(lines) if lines else "(bắt đầu hội thoại)"
     return truncate_text(history, HISTORY_MAX_CHARS)
 
@@ -149,3 +162,7 @@ def get_attempt_artifacts_dir(state) -> Path:
             / f"plan_{state.get('plan_version', 0)}"
             / f"step_{current_step(state)['step']}"
             / f"attempt_{state.get('debug_count', 0)}")
+=======
+    text = "\n".join(lines) if lines else "(bắt đầu hội thoại)"
+    return text[-settings.prompt_max_chars:]
+>>>>>>> restore-work

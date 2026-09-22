@@ -1,6 +1,7 @@
 import json
 from graph.llms import get_node_llm
 from graph.prompts import synthetic_prompt
+<<<<<<< HEAD
 from graph.state import SyntheticOutput
 from graph.recovery import model_failure
 from graph.utils import analysis_context
@@ -19,3 +20,14 @@ def synthetic_node(state):
         return {"draft_answer": result.final_answer, "answer_revision_count": revisions}
     except Exception as exc:
         return model_failure("Synthetic", exc)
+=======
+from graph.state import DataAgentState, SyntheticOutput
+from graph.utils import latest_user_question
+
+synthetic_chain = synthetic_prompt | llm.with_structured_output(SyntheticOutput)
+
+
+def synthetic_node(state: DataAgentState):
+    result = synthetic_chain.invoke({"user_question": latest_user_question(state["messages"]), "assumptions": state.get("assumptions", []), "past_steps": state.get("past_steps", [])[-12:], "artifacts": state.get("artifacts", [])})
+    return {"final_answer": result.final_answer, "messages": [AIMessage(content=result.final_answer)]}
+>>>>>>> restore-work

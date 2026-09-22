@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 langgraph==1.2.11
 langchain-core==1.6.0
 langchain-google-genai==4.3.6
@@ -10,3 +11,27 @@ pandas==2.2.3
 pyarrow==25.0.1
 matplotlib==3.11.1
 pytest==8.3.4
+=======
+langgraph
+langchain
+langchain-google-genai
+langchain-ollama
+langchain-deepseek
+langchain-chroma    
+langchain-tavily
+langgraph-cli
+langgraph-cli[inmem]
+
+pydantic
+numpy
+pandas
+python-dotenv
+duckdb
+matplotlib
+seaborn
+
+e2b-code-interpreter==2.9.0
+openpyxl
+sqlglot
+pytest
+>>>>>>> restore-work
