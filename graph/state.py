@@ -1,84 +1,79 @@
-from typing import Annotated, List, Optional, Literal, TypedDict, Dict, Required
+"""Structured LLM outputs and serializable LangGraph state."""
+
+from __future__ import annotations
+
+from typing import Annotated, Any, Literal, Optional, Required, TypedDict
+
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
 
 
-# ========================= #
-#       SCHEMA FOR LLM      #
-# ========================= #
-# 1. Schema for Router
 class RouteDecision(BaseModel):
-    intent: Literal["chat", "analysis", "clarify_needed"] = Field(
-        description="Nhãn phân loại của câu hỏi"
-    )
-# 2. Schema for clarify question
-class ClarifyDecision(BaseModel):
-    clarifying_question: str = Field(
-        description="Câu hỏi ngắn gọn để hỏi lại user, làm rõ ý định phân tích dữ liệu."
-    )
-    reason: str = Field(
-        description="Lý do ngắn gọn vì sao câu hỏi gốc chưa đủ rõ để phân tích."
-    )
-# 3. Schema for planner
+    intent: Literal["chat", "analysis"]
+
+
+class AnalysisStep(BaseModel):
+    objective: str = Field(description="A short, observable analysis objective.")
+    kind: Literal["explore", "query", "visualize", "custom_compute"]
+    success_criteria: str = Field(description="What evidence this step must produce.")
+
+
 class AnalysisPlan(BaseModel):
-    steps: list[str] = Field(description="Danh sách các bước logic ngắn gọn để phân tích dữ liệu")
+    assumptions: list[str] = Field(default_factory=list)
+    steps: list[AnalysisStep] = Field(default_factory=list)
 
-# 4. Schema for coder 
+
+class ActionDecision(BaseModel):
+    mode: Literal["tool", "code"]
+    tool_name: Optional[str] = None
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    fallback_reason: Optional[str] = None
+
+
 class CoderOutput(BaseModel):
-    code: str = Field(description="Mã Python được tạo ra để thực thi. Không bao gồm markdown formatting (như ```python).")
+    code: str
 
-# 5. Schema for validator
+
 class ValidatorOutput(BaseModel):
-    is_valid: bool = Field(description="True nếu kết quả đã trả lời đủ và đúng trọng tâm câu hỏi gốc. False nếu chưa.")
-    feedback: str = Field(description="Lý do chưa đạt và gợi ý hướng xử lý tiếp (chỉ ghi khi False).")
+    is_valid: bool
+    feedback: str = ""
 
-# 6. Schema for synthetic
+
 class SyntheticOutput(BaseModel):
-    final_answer: str = Field(
-        description="Câu trả lời cuối cùng, toàn diện, dùng Markdown. Nếu có ảnh/biểu đồ trong artifacts, HÃY NHÚNG vào bằng cú pháp ![Mô tả](đường_dẫn_file)."
-    )
-# ========================= #
-#       SCHEMA FOR GRAPH    #
-# ========================= #
-class DataAgentState(TypedDict):
-    # --- Lịch sử chat ---
-    messages: Annotated[List[BaseMessage], add_messages]
+    final_answer: str
 
-    # --- Dataset & schema ---
-    file_paths: List[str] # Đường dẫn các file csv
-    schema_str: Optional[str] # Schema của các file csv
-    schema_file_paths: Optional[List[str]]  # bộ file đã dùng để tạo schema_str
 
-    # --- Planning ---
-    plan: List[str]
+class DataAgentState(TypedDict, total=False):
+    messages: Annotated[list[BaseMessage], add_messages]
+    file_paths: list[str]
+    artifacts_dir: Required[str]
+    final_answer: Optional[str]
+    artifacts: list[str]
+    schema_str: Optional[str]
+    schema_file_paths: Optional[list[str]]
+    data_profile: dict[str, Any]
+    profile_summary: str
+    profile_fingerprints: dict[str, str]
+    plan: list[dict[str, Any]]
     current_step_idx: int
-    past_steps: List[dict]  # [{step, code, stdout, artifacts}]
-
-    # --- Coder / Executor ---
+    assumptions: list[str]
+    action: dict[str, Any]
+    past_steps: list[dict[str, Any]]
+    execution_records: list[dict[str, Any]]
     code: Optional[str]
     execution_status: Optional[Literal["success", "error"]]
     execution_output: Optional[str]
     execution_error: Optional[str]
     traceback: Optional[str]
-    artifacts_dir: Required[str] # Chỗ lưu ảnh các biểu đồ
-
-    # --- Debug ---
     debug_feedback: Optional[str]
-
-
-    # --- Retry / Replan control ---
     retry_count: int
-    max_retries: int
+    tool_retry_count: int
     replan_count: int
+    max_retries: int
     max_replans: int
-
-    # # --- Human in the loop ---
-    # needs_human_review: bool
-    # human_approved: Optional[bool]
-
-    # --- Validation & output ---
+    run_id: str
+    sandbox_id: Optional[str]
+    sandbox_file_map: dict[str, str]
     is_sufficient: Optional[bool]
-    artifacts: List[str]
-    final_answer: Optional[str]
     validation_feedback: Optional[str]

@@ -6,7 +6,7 @@ langchain-deepseek
 langchain-chroma    
 langchain-tavily
 langgraph-cli
-"langgraph-cli[inmem]"
+langgraph-cli[inmem]
 
 pydantic
 numpy
@@ -15,3 +15,8 @@ python-dotenv
 duckdb
 matplotlib
 seaborn
+
+e2b-code-interpreter==2.9.0
+openpyxl
+sqlglot
+pytest

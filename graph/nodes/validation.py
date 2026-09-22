@@ -1,21 +1,11 @@
 from graph.llms import llm
 from graph.prompts import validation_prompt
 from graph.state import DataAgentState, ValidatorOutput
+from graph.utils import latest_user_question
 
+validation_chain = validation_prompt | llm.with_structured_output(ValidatorOutput)
 
-structured_validation_llm = llm.with_structured_output(ValidatorOutput)
-validator_chain = validation_prompt | structured_validation_llm
 
 def validate_node(state: DataAgentState):
-    user_question = next((m.content for m in reversed(state["messages"]) if m.type == "human"), "")
-    final_answer = state.get("final_answer", "")
-
-    result: ValidatorOutput = validator_chain.invoke({
-        "user_question": user_question,
-        "final_answer": final_answer
-    })
-
-    return {
-        "is_sufficient": result.is_valid,
-        "validation_feedback": result.feedback if not result.is_valid else None
-    }
+    result = validation_chain.invoke({"user_question": latest_user_question(state["messages"]), "evidence": state.get("past_steps", [])[-12:], "final_answer": state.get("final_answer", "")})
+    return {"is_sufficient": result.is_valid, "validation_feedback": result.feedback if not result.is_valid else None}

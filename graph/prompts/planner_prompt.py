@@ -1,30 +1,18 @@
 from langchain_core.prompts import ChatPromptTemplate
 
+INITIAL_PLANNER_SYSTEM_PROMPT = """You plan data analysis. Return a small ordered plan, never code.
+Use only four kinds: explore, query, visualize, custom_compute. Prefer the first three.
+For vague requests, make the smallest reasonable assumptions from the catalog and record them.
+Each step needs an observable success criterion."""
 
-INITIAL_PLANNER_SYSTEM_PROMPT = """Bạn là chuyên gia dữ liệu. Hãy lập kế hoạch từng bước logic. KHÔNG VIẾT CODE."""
-
-REPLAN_SYSTEM_PROMPT = """Bạn là chuyên gia dữ liệu. Hãy lập kế hoạch TIẾP THEO hoặc ĐIỀU CHỈNH KẾ HOẠCH nếu có lỗi. KHÔNG VIẾT CODE."""
-
-ERROR_CONTEXT_TEMPLATE = """LƯU Ý: Bước hiện tại bị lỗi '{execution_error}'. Hãy tìm HƯỚNG TIẾP CẬN KHÁC để thay thế."""
-
+REPLAN_SYSTEM_PROMPT = """You revise a data-analysis plan after evidence or validation feedback. Return only remaining useful steps, never code. Prefer tools over custom_compute and do not repeat completed work."""
 
 initial_planner_prompt = ChatPromptTemplate.from_messages([
     ("system", INITIAL_PLANNER_SYSTEM_PROMPT),
-    ("human", """- Lịch sử hội thoại:
-{history}
-- Câu hỏi hiện tại: {current_question}
-- Lược đồ: {schema_str}"""),
+    ("human", "History:\n{history}\n\nRequest: {current_question}\n\nCatalog:\n{schema_str}"),
 ])
 
 replan_prompt = ChatPromptTemplate.from_messages([
     ("system", REPLAN_SYSTEM_PROMPT),
-    ("human", """- Lịch sử hội thoại:
-{history}
-- Câu hỏi hiện tại: {current_question}
-- Lược đồ: {schema_str}
-- Kế hoạch cũ: {current_plan}
-- Đã thực hiện thành công: {past_steps}
-{error_context}
-
-Hãy đưa ra các bước cần làm."""),
+    ("human", "History:\n{history}\n\nRequest: {current_question}\n\nCatalog:\n{schema_str}\n\nCompleted evidence:\n{past_steps}\n\nValidation/error feedback:\n{feedback}"),
 ])

@@ -1,18 +1,9 @@
 # Python bytecode and caches
 __pycache__/
-*.py[cod]
-*$py.class
 .pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.hypothesis/
 
 # Test and coverage output
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
+tests/
 
 # Virtual environments
 .venv/
@@ -20,15 +11,8 @@ venv/
 env/
 ENV/
 
-# Packaging output
-build/
-dist/
-*.egg-info/
-
 # Local secrets and environment overrides
 .env
-.env.*
-!.env.example
 
 # Runtime-generated files
 .langgraph_api/
@@ -41,5 +25,3 @@ artifacts/
 # Editors and operating systems
 .vscode/
 .idea/
-.DS_Store
-Thumbs.db
