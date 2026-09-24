@@ -36,11 +36,25 @@ class CoderOutput(BaseModel):
 
 
 class ValidatorOutput(BaseModel):
-    is_valid: bool
+    decision: Literal["accept", "revise_answer", "reanalyze"]
     feedback: str = ""
 
 
 class SyntheticOutput(BaseModel):
+    final_answer: str
+
+
+class DataAgentInput(TypedDict, total=False):
+    """Fields accepted from callers at the start of a graph run."""
+
+    messages: Annotated[list[BaseMessage], add_messages]
+    file_paths: list[str]
+    artifacts_dir: Required[str]
+
+
+class DataAgentOutput(TypedDict):
+    """The sole public response contract for chat and analysis requests."""
+
     final_answer: str
 
 
@@ -49,6 +63,7 @@ class DataAgentState(TypedDict, total=False):
     file_paths: list[str]
     artifacts_dir: Required[str]
     final_answer: Optional[str]
+    answer_history: list[dict[str, str]]
     artifacts: list[str]
     schema_str: Optional[str]
     schema_file_paths: Optional[list[str]]
@@ -76,4 +91,7 @@ class DataAgentState(TypedDict, total=False):
     sandbox_id: Optional[str]
     sandbox_file_map: dict[str, str]
     is_sufficient: Optional[bool]
+    validation_decision: Optional[Literal["accept", "revise_answer", "reanalyze"]]
     validation_feedback: Optional[str]
+    synthesis_retry_count: int
+    max_synthesis_retries: int

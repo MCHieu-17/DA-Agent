@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from graph.tools import exploration, query, visualization
+from graph.tool_capabilities import CHART_TOOL_LIMIT
 
 Tool = Callable[..., dict[str, Any]]
 
@@ -20,7 +21,7 @@ TOOL_REGISTRY: dict[str, Tool] = {
 
 TOOL_CATALOG = """exploration: list_tables(), describe_table(table, columns?), preview_rows(table, columns?, limit?, offset?), get_column_values(table, column, limit?, search?)
 query: aggregate_data(table, metrics, group_by?, limit?), run_query(sql, limit?) [SELECT/CTE only]
-visualization: create_chart(sql, chart_type, x?, y?, color?, title?) [bar, line, scatter, histogram, box, pie]"""
+visualization: create_chart(sql, chart_type, x?, y?, color?, title?) [bar, line, scatter, histogram, box, pie]. """ + CHART_TOOL_LIMIT
 
 
 def execute_tool(state: dict[str, Any], name: str, arguments: dict[str, Any]) -> dict[str, Any]:

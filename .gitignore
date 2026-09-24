@@ -2,9 +2,6 @@
 __pycache__/
 .pytest_cache/
 
-# Test and coverage output
-tests/
-
 # Virtual environments
 .venv/
 venv/

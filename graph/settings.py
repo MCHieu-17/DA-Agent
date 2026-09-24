@@ -37,6 +37,7 @@ class Settings:
     max_tool_retries: int = _int("MAX_TOOL_RETRIES", 2)
     max_code_retries: int = _int("MAX_CODE_RETRIES", 2)
     max_replans: int = _int("MAX_REPLANS", 2)
+    max_synthesis_retries: int = _int("MAX_SYNTHESIS_RETRIES", 2)
     default_artifacts_dir: str = os.getenv("DEFAULT_ARTIFACTS_DIR", "artifacts")
     max_artifact_mb: int = _int("MAX_ARTIFACT_MB", 20)
     e2b_template: str | None = os.getenv("E2B_TEMPLATE") or None

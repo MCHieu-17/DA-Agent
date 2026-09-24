@@ -2,7 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from graph.llms import llm
 from graph.state import DataAgentState, RouteDecision
-from graph.utils import format_history, latest_user_question
+from graph.utils import format_answer_history, latest_user_question
 
 router_chain = ChatPromptTemplate.from_messages([
     ("system", """Classify the latest user request as exactly one label.
@@ -14,5 +14,5 @@ Use conversation history for follow-ups. Never return clarify_needed."""),
 
 
 def question_router(state: DataAgentState) -> str:
-    decision = router_chain.invoke({"history": format_history(state["messages"], exclude_last=True), "question": latest_user_question(state["messages"]), "profile_summary": state.get("profile_summary", "No readable data.")})
+    decision = router_chain.invoke({"history": format_answer_history(state.get("answer_history")), "question": latest_user_question(state["messages"]), "profile_summary": state.get("profile_summary", "No readable data.")})
     return decision.intent

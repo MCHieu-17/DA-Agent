@@ -2,11 +2,11 @@ from langgraph.graph import END, START, StateGraph
 
 from graph.edges import question_router, router_after_action, router_after_execute, router_after_validation
 from graph.nodes import action_selector_node, chat_node, cleanup_node, coder_node, debug_node, execution_node, extract_schema_node, planner_node, synthetic_node, tool_executor_node, validate_node
-from graph.state import DataAgentState
+from graph.state import DataAgentInput, DataAgentOutput, DataAgentState
 
 
 def build_graph():
-    graph = StateGraph(DataAgentState)
+    graph = StateGraph(DataAgentState, input_schema=DataAgentInput, output_schema=DataAgentOutput)
     graph.add_node("extract_schema", extract_schema_node)
     graph.add_node("chat", chat_node)
     graph.add_node("planner", planner_node)
@@ -29,7 +29,7 @@ def build_graph():
     graph.add_conditional_edges("execute", router_after_execute, {"action_selector": "action_selector", "debug": "debug", "planner": "planner", "synthetic": "synthetic"})
     graph.add_edge("debug", "coder")
     graph.add_edge("synthetic", "validate")
-    graph.add_conditional_edges("validate", router_after_validation, {"planner": "planner", "cleanup": "cleanup"})
+    graph.add_conditional_edges("validate", router_after_validation, {"planner": "planner", "synthetic": "synthetic", "cleanup": "cleanup"})
     graph.add_edge("cleanup", END)
     return graph.compile()
 

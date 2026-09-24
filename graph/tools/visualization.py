@@ -14,6 +14,28 @@ import pandas as pd
 from graph.tools.query import run_query
 
 
+def _chart_data(df: pd.DataFrame, max_rows: int = 30) -> dict[str, Any]:
+    """Expose the plotted values without returning an unbounded table."""
+    rows = df.astype(object).where(df.notna(), None).to_dict(orient="records")
+    shown = rows if len(rows) <= max_rows else rows[:max_rows - 2] + rows[-2:]
+    summary = {}
+    for column in df.select_dtypes(include="number").columns:
+        series = df[column].dropna()
+        if not series.empty:
+            summary[str(column)] = {
+                "min": float(series.min()),
+                "max": float(series.max()),
+                "sum": float(series.sum()),
+            }
+    return {
+        "columns": list(df.columns),
+        "rows": shown,
+        "row_count": len(rows),
+        "omitted_rows": len(rows) - len(shown),
+        "numeric_summary_of_all_plotted_rows": summary,
+    }
+
+
 def create_chart(state: dict[str, Any], sql: str, chart_type: str, x: str | None = None, y: str | None = None, color: str | None = None, title: str | None = None, **_: Any) -> dict[str, Any]:
     allowed = {"bar", "line", "scatter", "histogram", "box", "pie"}
     if chart_type not in allowed:
@@ -54,4 +76,4 @@ def create_chart(state: dict[str, Any], sql: str, chart_type: str, x: str | None
     output = directory / f"chart_{uuid4().hex[:10]}.png"
     fig.savefig(output, dpi=150)
     plt.close(fig)
-    return {"ok": True, "artifacts": [str(output).replace("\\", "/")], "chart_type": chart_type, "source_rows": len(df), "truncated": query_result["truncated"]}
+    return {"ok": True, "artifacts": [str(output).replace("\\", "/")], "chart_type": chart_type, "title": title or chart_type.title(), "x": x, "y": y, "source_rows": len(df), "truncated": query_result["truncated"], "chart_data": _chart_data(df)}
